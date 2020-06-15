@@ -7,6 +7,9 @@ const objectFilter = (obj, fn) => {
     Object.entries(obj).filter(([k, v], i) => fn(v, k, i))
   );
 };
+const objectMapper = (obj, fn) => {
+  return Object.entries(obj).map(([k, v], i) => fn(v, k, i));
+};
 // Analogous data from API call
 const PRODUCTS = {
   brocoli: {
@@ -87,8 +90,12 @@ const PRODUCTS = {
 class App extends React.Component {
   constructor(props) {
     super(props);
+    const previous_cart_JSON = localStorage.getItem("user_cart");
+    const previous_cart = previous_cart_JSON
+      ? objectMapper(JSON.parse(previous_cart_JSON), (v) => v)
+      : [];
     this.state = {
-      cart: [], // {item:{PRODUCTS_item},quantity}
+      cart: previous_cart, // {item:{PRODUCTS_item},quantity}
       searchKey: null,
     };
   }
@@ -106,9 +113,9 @@ class App extends React.Component {
     const key = this.state.searchKey;
     // check for empty string
     if (key) {
-      // Only accept one complete word search
+      // Only accept one complete word search or partial include within the name
       const searchResultObject = objectFilter(PRODUCTS, (v) => {
-        return v.keywords.includes(key);
+        return v.keywords.includes(key) || v.key.includes(key);
       });
       return searchResultObject;
     } else {
@@ -139,11 +146,21 @@ class App extends React.Component {
         cart: currentCart,
       });
     }
+    this.storeToLocalStorage();
   }
   handleCartItem(cart_list) {
     this.setState({
       cart: cart_list,
     });
+    this.storeToLocalStorage();
+  }
+  storeToLocalStorage() {
+    //store cart in local storage
+    const parsedCart = this.state.cart.map((x, i) => [`item_${i}`, x]);
+    localStorage.setItem(
+      "user_cart",
+      JSON.stringify(Object.fromEntries(parsedCart))
+    );
   }
   render() {
     return (
